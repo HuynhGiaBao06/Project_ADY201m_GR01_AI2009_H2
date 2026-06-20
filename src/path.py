@@ -28,11 +28,18 @@ else:
 # ==========================================
 
 DATA_DIR = PROJECT_ROOT/ "data"
-PROCESSED_DATA_DIR = DATA_DIR / "processed_data" # Nơi để data đã làm sạch tạm thời
+# Đường dấn data checkpoint
+CHECKPOINT_DATA_DIR = DATA_DIR / "checkpoint_data" 
+TRAIN_DATA_FILE = CHECKPOINT_DATA_DIR / "train_df.csv"
+TEST_DATA_FILE = CHECKPOINT_DATA_DIR/ "test.csv"
+# Đường dẫn data_raw (chỉ Bảo dùng)
+DATA_RAW = DATA_DIR / "data_raw"
+DATA_RAW_FILE = DATA_RAW / "data_raw.csv"
 
 # ==========================================
 # 3. ĐƯỜNG DẪN ĐẦU RA (OUTPUT PATHS)
 # ==========================================
+
 MODELS_DIR = PROJECT_ROOT / "models"        # Nơi lưu file model (.pkl, .joblib)
 REPORTS_DIR = PROJECT_ROOT / "reports"      # Nơi lưu báo cáo
 FIGURES_DIR = REPORTS_DIR / "figures"       # Nơi xuất file ảnh biểu đồ (.png, .jpg)

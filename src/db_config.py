@@ -4,7 +4,6 @@ from pathlib import Path
 from sqlalchemy import create_engine,text
 from sqlalchemy.exc import SQLAlchemyError,OperationalError
 from dotenv import load_dotenv
-
 class NeonDBManager:
     """
     Class quản lý kết nối 2 chiều giữa Python và Neon PostgreSQL.
@@ -19,15 +18,16 @@ class NeonDBManager:
         try:
             # Nếu chạy bằng file .py thông thường
             base_dir = Path(__file__).resolve().parent
-            env_path = base_dir / ".env"
+            # ĐÃ SỬA LỖI: Thêm .parent để lùi từ src/ ra ngoài thư mục gốc
+            env_path = base_dir.parent / ".env" 
+            
         except NameError:
             # Nếu chạy bằng Jupyter Notebook
             current_dir = Path.cwd()
             
-            # Kiểm tra xem file .env có ở ngay thư mục hiện tại không (Project_Root)
+            # Kiểm tra xem file .env có ở ngay thư mục hiện tại không
             if (current_dir / ".env").exists():
                 env_path = current_dir / ".env"
-            # Nếu không có, mới lùi ra ngoài 1 thư mục cha (Project_Root/notebooks)
             else:
                 env_path = current_dir.parent / ".env"
         

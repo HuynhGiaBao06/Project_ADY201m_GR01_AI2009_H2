@@ -78,6 +78,7 @@ models/
 *.twb
 *.twbx
 
+notebooks/Data_missing.ipynb
 # ===================================================
 # THƯ MỤC LÀM VIỆC NHÓM (Tránh conflict Git)
 # ===================================================

@@ -25,3 +25,6 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO member_duyna, member_kietnh;
 -- 4. QUAN TRỌNG: Đảm bảo các bảng tạo MỚI trong tương lai thì 2 user này vẫn có quyền Đọc/Ghi
 ALTER DEFAULT PRIVILEGES IN SCHEMA public 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO member_duyna, member_kietnh;
+
+-- Cấp quyền tạo (CREATE) và sử dụng (USAGE) trên schema public
+GRANT ALL ON SCHEMA public TO member_duyna, member_kietnh;

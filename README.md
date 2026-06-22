@@ -49,3 +49,4 @@ Dự án sẽ giải quyết 3 câu hỏi nghiên cứu trọng tâm để phụ
   - **age_at_first_credit:** Độ chín muồi tài chính = `person_age` - `cb_person_cred_hist_length`.
   - **Estimated_Annual_Interest:** Áp lực lãi vay = `loan_amnt` * (`loan_int_rate` / 100).
   - **Income_per_Employment_Year:** Năng lực dòng tiền = `person_income` / (`person_emp_length` + 1e-6).
+# Credit_Risk

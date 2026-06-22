@@ -1,4 +1,5 @@
 import os
+import time
 import pandas as pd
 from pathlib import Path
 from sqlalchemy import create_engine,text
@@ -34,39 +35,43 @@ class NeonDBManager:
         # Nạp biến môi trường từ đường dẫn vừa tìm được
         load_dotenv(dotenv_path=env_path)
 
-        # =================================================================
-        # 2. KHỞI TẠO CHUỖI KẾT NỐI & XỬ LÝ LỖI
-        # =================================================================
         self.db_url = os.getenv("DATABASE_URL")
-
         if not self.db_url:
-            raise ValueError(f"🚨 NGHIÊM TRỌNG: Không tìm thấy biến DATABASE_URL!\n"
-                f"Hãy kiểm tra xem file đã tồn tại ở đường dẫn này chưa: {env_path}")
+            raise ValueError(f"🚨 NGHIÊM TRỌNG: Không tìm thấy biến DATABASE_URL!\n")
         
         try:
             self.engine = create_engine(
                 self.db_url,
                 pool_pre_ping=True,
                 pool_recycle=300,
-                connect_args={'sslmode': 'require'}
+                # THÊM connect_timeout để cho phép Neon có thêm thời gian thức dậy
+                connect_args={'sslmode': 'require', 'connect_timeout': 10} 
             )
         except Exception as e:
-            raise ConnectionError(f"🚨 LỖI KHỞI TẠO ENGINE: Không thể thiết lập cấu hình. Chi tiết: {e}")
-        
+            raise ConnectionError(f"🚨 LỖI KHỞI TẠO ENGINE: {e}")
 
-    def test_connection(self):
-        """Kiểm tra kết nối trước khi làm việc nặng"""
-        try:
-            with self.engine.connect() as connection:
-                connection.execute(text("SELECT 1"))
-            print("✅ Kết nối PostgreSQL thành công và đang hoạt động!")
-            return True
-        except OperationalError as e:
-            print(f"❌ LỖI KẾT NỐI MẠNG / SAI THÔNG TIN:\nChi tiết: {e}")
-            return False
-        except Exception as e:
-            print(f"❌ LỖI KHÔNG XÁC ĐỊNH: {e}")
-            return False
+    def test_connection(self, max_retries=3, delay=3):
+        """
+        Kiểm tra kết nối trước khi làm việc nặng.
+        ĐÃ XỬ LÝ COLD START: Sẽ thử lại (retry) nếu database đang ngủ.
+        """
+        for attempt in range(max_retries):
+            try:
+                with self.engine.connect() as connection:
+                    connection.execute(text("SELECT 1"))
+                print("✅ Kết nối PostgreSQL thành công và đang hoạt động!")
+                return True
+            except OperationalError as e:
+                print(f"⚠️ Lần thử {attempt + 1}/{max_retries} thất bại. Có thể do Neon Serverless đang Cold Start.")
+                if attempt < max_retries - 1:
+                    print(f"⏳ Đang chờ {delay} giây để thử lại...")
+                    time.sleep(delay)  # Dừng lại 3 giây chờ database thức dậy
+                else:
+                    print(f"❌ LỖI KẾT NỐI: Đã thử {max_retries} lần nhưng không thành công.\nChi tiết: {e}")
+                    return False
+            except Exception as e:
+                print(f"❌ LỖI KHÔNG XÁC ĐỊNH: {e}")
+                return False
         
     def fetch_data(self,query:str) -> pd.DataFrame:
         """Kéo dữ liệu từ SQL về Pandas DataFrame"""

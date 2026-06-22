@@ -55,7 +55,7 @@ Ghi nhớ: `origin` = repository trên GitHub. `main` = nhánh chính của team
 
 ## 🔀 6. Quy Trình Pull Request (PR) Trên GitHub
 1. Vào repository trên GitHub → **Pull requests** → **New pull request**.
-2. `base: main` ← `compare: nhánh của bạn` (ví dụ: 02_huukiet_feature_engineer).
+2. `base: main` ← `compare: nhánh của bạn` (ví dụ: 02_NHK_feature_engineer).
 3. Điền mô tả PR và gán ít nhất 1 Reviewer (có thể gán Gia Bảo làm QA duyệt code).
 4. Bấm **Create pull request**.
 

@@ -1,13 +1,25 @@
-SELECT DISTINCT 
-    person_age, 
-    person_income, 
-    person_emp_length, 
-    loan_amnt, 
-    loan_int_rate, 
-    loan_status
-FROM db_credit_risk
-WHERE (person_age <= 100)
-  AND (person_emp_length <= person_age OR person_emp_length IS NULL)
-  AND (loan_amnt > 0)
-  AND (person_income > 0)
-  AND (loan_int_rate > 0 OR loan_int_rate IS NULL);
+BEGIN;
+
+-- Invalid age -> NULL
+UPDATE db_credit_risk
+SET person_age = NULL
+WHERE person_age >= 100;
+
+-- Fill NULL with median
+WITH median_age AS (
+    SELECT PERCENTILE_CONT(0.5)
+           WITHIN GROUP (ORDER BY person_age) AS median
+    FROM db_credit_risk
+    WHERE person_age IS NOT NULL
+)
+UPDATE db_credit_risk
+SET person_age = median_age.median
+FROM median_age
+WHERE db_credit_risk.person_age IS NULL;
+
+-- Fill employment length
+UPDATE db_credit_risk
+SET person_emp_length = 1
+WHERE person_emp_length IS NULL;
+
+COMMIT;

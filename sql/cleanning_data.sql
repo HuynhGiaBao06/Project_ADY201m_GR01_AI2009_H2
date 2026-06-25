@@ -9,5 +9,4 @@ FROM db_credit_risk
 WHERE (person_age <= 100)
   AND (person_emp_length <= person_age OR person_emp_length IS NULL)
   AND (loan_amnt > 0)
-  AND (person_income > 0)
-  AND (loan_int_rate > 0 OR loan_int_rate IS NULL);
+  AND (person_income > 0);

@@ -59,6 +59,8 @@ tempCodeRunnerFile.py
 # 1. Chặn toàn bộ thư mục dữ liệu
 data/
 *.csv
+!data/checkpoint_data/test_df.csv 
+!data/checkpoint_data/train_df.csv   #cho phép đẩy datacheckpoint
 *.tsv
 *.xlsx
 *.xls

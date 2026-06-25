@@ -1,9 +1,17 @@
 #Hàm gọi SQL View trả ra Pandas DataFrame
 import pandas as pd
-from src.db_config import NeonDBManager
-from src.path import TRAIN_DATA_FILE,TEST_DATA_FILE,check_and_create_directories
 from pathlib import Path
 from sklearn.model_selection import train_test_split
+import sys
+
+# ==========================================
+#THÊM PROJECT ROOT VÀO SYS.PATH
+# ==========================================
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.append(str(PROJECT_ROOT))
+
+from src.db_config import NeonDBManager
+from src.path import TRAIN_DATA_FILE,TEST_DATA_FILE,check_and_create_directories
 
 class DataIngestion:
     """
@@ -67,5 +75,5 @@ class DataIngestion:
         # === Cách sử dụng ===
 if __name__ == "__main__":
     ingestor = DataIngestion()
-    # Giả sử View bạn tạo trên SQL tên là 'vw_credit_risk_raw'
-    ingestor.process_and_checkpoint(view_name="vw_credit_risk_raw")
+    # Giả sử View bạn tạo trên SQL tên là 'vw_credit_risk'
+    ingestor.process_and_checkpoint(view_name="vw_credit_risk")

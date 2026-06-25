@@ -1,4 +1,4 @@
-CREATE VIEW vw_credit_risk_raw
+CREATE VIEW vw_credit_risk
 AS
 SELECT 
     loan_status, 
@@ -14,3 +14,5 @@ SELECT
     loan_int_rate, 
     loan_percent_income
 FROM db_credit_risk;
+
+DROP VIEW vw_credit_risk

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
-class CreditRiskStatisticalImputer(BaseEstimator, TransformerMixin):
+class FeatureCreator(BaseEstimator, TransformerMixin):
     """
     Module tự động hóa việc Học quy luật thống kê trên tập Train (Fit Phase)
     và Áp dụng để xử lý dữ liệu trên cả hai tập Train/Test (Transform Phase).

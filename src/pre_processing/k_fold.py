@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 
-class KFoldRiskTargetEncoder:
+class KFoldTargetEncoder:
     """
     Module mã hóa rủi ro danh mục (Risk Target Encoding) kết hợp OOF và M-estimate Smoothing.
     Chuyên trách bởi: An Duy (Tuần 2)

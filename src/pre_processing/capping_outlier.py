@@ -3,67 +3,65 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
-class OutlierCapping:
+
+class OutlierCapping(BaseEstimator, TransformerMixin):
+    """
+    Winsorization/Capping bằng percentile 1%-99%.
+    Học ngưỡng trên Train và áp dụng cho Train/Test.
+    """
+
     def __init__(self, cols=None):
-        """
-        Khởi tạo module Capping.
-        
-        Parameters:
-        cols (list or None): Danh sách các cột cần xử lý ngoại lai. 
-                             Nếu None, module sẽ tự động áp dụng cho tất cả các cột dạng số.
-        """
         self.cols = cols
-        self.thresholds_ = {}  # Dictionary để lưu trữ ngưỡng 1% và 99% của từng cột
+        self.thresholds_ = {}
 
     def fit(self, X, y=None):
-        """
-        Học các mốc phân vị 1% và 99% từ tập Train.
-        
-        Parameters:
-        X (pd.DataFrame): Dữ liệu đầu vào (bắt buộc là tập Train).
-        y (pd.Series, optional): Biến mục tiêu (không sử dụng, giữ nguyên để tương thích Pipeline).
-        
-        Returns:
-        self
-        """
-        # Đảm bảo dữ liệu đầu vào là DataFrame
+
+        X = X.copy()
+
         if not isinstance(X, pd.DataFrame):
-            X = pd.DataFrame(X)
+            raise ValueError("Input must be a pandas DataFrame")
 
-        # Nếu không truyền danh sách cột cụ thể, tự động lấy toàn bộ các cột có kiểu dữ liệu số
-        if self.cols is None:
-            self.cols = X.select_dtypes(include=[np.number]).columns.tolist()
+        cols = self.cols
 
-        # Tính toán và lưu trữ ngưỡng phân vị 1% và 99% cho từng cột
-        for col in self.cols:
-            lower_bound = X[col].quantile(0.01)
-            upper_bound = X[col].quantile(0.99)
-            self.thresholds_[col] = (lower_bound, upper_bound)
+        if cols is None:
+            cols = X.select_dtypes(include=[np.number]).columns.tolist()
+
+        self.cols_ = cols
+
+        self.thresholds_ = {}
+
+        for col in self.cols_:
+
+            if col not in X.columns:
+                continue
+
+            lower = X[col].quantile(0.01)
+            upper = X[col].quantile(0.99)
+
+            self.thresholds_[col] = (lower, upper)
 
         return self
 
     def transform(self, X):
-        """
-        Áp dụng cắt cụt dữ liệu dựa trên các ngưỡng đã học ở bước fit.
-        
-        Parameters:
-        X (pd.DataFrame): Dữ liệu cần biến đổi (Train hoặc Test).
-        
-        Returns:
-        pd.DataFrame: Dữ liệu đã được cắt cụt ngoại lai.
-        """
-        # Copy dữ liệu để không làm biến đổi DataFrame gốc
-        X_transformed = X.copy()
-        
-        if not isinstance(X_transformed, pd.DataFrame):
-            X_transformed = pd.DataFrame(X_transformed)
 
-        # Thực hiện ép (clip) giá trị về các ngưỡng đã lưu trong self.thresholds_
-        for col in self.cols:
-            if col in self.thresholds_:
-                lower_bound, upper_bound = self.thresholds_[col]
-                # Sử dụng np.clip để ép các giá trị ngoài giới hạn về đúng ngưỡng an toàn
-                X_transformed[col] = np.clip(X_transformed[col], lower_bound, upper_bound)
+        if not self.thresholds_:
+            raise ValueError(
+                "OutlierCapping has not been fitted. Call fit() first."
+            )
 
-        return X_transformed
+        X_out = X.copy()
 
+        for col in self.cols_:
+
+            if col not in X_out.columns:
+                continue
+
+            lower, upper = self.thresholds_[col]
+
+            X_out[col] = np.clip(
+                X_out[col],
+                lower,
+                upper
+            )
+
+        return X_out

@@ -1,18 +1,3 @@
-<<<<<<< Updated upstream
-SELECT DISTINCT 
-    person_age, 
-    person_income, 
-    person_emp_length, 
-    loan_amnt, 
-    loan_int_rate, 
-    loan_status
-FROM db_credit_risk
-WHERE (person_age <= 100)
-  AND (person_emp_length <= person_age OR person_emp_length IS NULL)
-  AND (loan_amnt > 0)
-  AND (person_income > 0)
-  AND (loan_int_rate > 0 OR loan_int_rate IS NULL);
-=======
 WITH MedianByGrade AS (
     SELECT
         loan_grade,
@@ -51,12 +36,14 @@ FROM CleanData
 WHERE rn = 1;WITH MedianByGrade AS (
     SELECT
         loan_grade,
+WITH MedianByGrade AS (
+    SELECT
+        loan_grade,
         PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY loan_int_rate) AS median_rate
     FROM db_credit_risk
     WHERE loan_int_rate IS NOT NULL
     GROUP BY loan_grade
 ),
-
 -- Tạo thêm CTE để tính thâm niên trung vị theo từng độ tuổi
 MedianEmpByAge AS (
     SELECT
@@ -66,13 +53,11 @@ MedianEmpByAge AS (
     WHERE person_emp_length > 0 AND person_emp_length IS NOT NULL
     GROUP BY person_age
 ),
-
 CleanData AS (
     SELECT
         d.id,
         d.person_age,
-        d.person_income,
-        
+        d.person_income, 
         -- Nếu emp_length là NULL hoặc 0, thay bằng thâm niên trung vị của độ tuổi đó. 
         -- Nếu độ tuổi đó cũng không có trung vị, thì dự phòng gán bằng 0.5
         COALESCE(
@@ -101,5 +86,5 @@ CleanData AS (
 
 SELECT *
 FROM CleanData
+=======
 WHERE rn = 1;
->>>>>>> Stashed changes

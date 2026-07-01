@@ -3,6 +3,8 @@ ALTER SCHEMA public OWNER TO CURRENT_USER;
 GRANT ALL ON SCHEMA public TO CURRENT_USER;
 SELECT current_user;
 
+DROP TABLE db_credit_risk CASCADE;
+
 CREATE TABLE DB_CREDIT_RISK (
     id BIGINT PRIMARY KEY,                  -- Dùng ngoặc kép vì index là từ khóa nhạy cảm
     person_age INTEGER NOT NULL,

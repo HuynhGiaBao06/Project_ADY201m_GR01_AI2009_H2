@@ -1,77 +1,437 @@
-"""Feature engineering"""
-import numpy as np
+# ==========================================================
+# feature_creator.py
+#
+# Module Feature Engineering cho dự án
+# Phân loại Rủi ro Tín dụng (30.000 hồ sơ)
+#
+# Nhiệm vụ:
+# - Học quy luật xử lý dữ liệu từ tập TRAIN
+# - Áp dụng lại cho TRAIN và TEST
+#
+# Nguyên tắc:
+# FIT  : Chỉ học từ Train
+# TRANSFORM : Không học lại, chỉ áp dụng
+#
+# Triết lý:
+# "Thà từ chối nhầm khách tốt,
+#  còn hơn cho vay nhầm khách xấu"
+# ==========================================================
+
+
 import pandas as pd
+import numpy as np
+
+import sys
+
+from pathlib import Path
+
 from sklearn.base import BaseEstimator, TransformerMixin
 
-class FeatureCreator(BaseEstimator, TransformerMixin):
+
+
+# ==========================================================
+# PROJECT ROOT CONFIG
+# ==========================================================
+
+
+# src/pre_processing/feature_creator.py
+
+PROJECT_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parent
+    .parent
+    .parent
+)
+
+
+sys.path.append(
+    str(PROJECT_ROOT)
+)
+
+
+
+
+# ==========================================================
+# DATA PATH - CHỜ PIPELINE NẠP DATA
+# ==========================================================
+
+
+DATA_PATH = (
+    PROJECT_ROOT
+    /
+    "data"
+    /
+    "checkpoint_data"
+    /
+    "train_df.csv"
+)
+
+
+
+def load_data(path=DATA_PATH):
+
     """
-    Module tự động hóa việc Học quy luật thống kê trên tập Train (Fit Phase)
-    và Áp dụng để xử lý dữ liệu trên cả hai tập Train/Test (Transform Phase).
+    Hàm hỗ trợ test module.
+
+    Trong pipeline thật:
+    DataFrame sẽ truyền trực tiếp vào:
+        fit()
+        transform()
     """
-    def __init__(self, numerical_cols=None, categorical_cols=None):
+
+    print("==============================")
+    print("LOAD DATA")
+    print("==============================")
+
+    print("PATH:")
+    print(path)
+
+
+    assert Path(path).exists(), (
+        f"Không tìm thấy file: {path}"
+    )
+
+
+    df = pd.read_csv(path)
+
+
+    print("Shape:")
+    print(df.shape)
+
+
+    print("Columns:")
+    print(df.columns.tolist())
+
+
+    return df
+
+
+
+
+
+# ==========================================================
+# FEATURE CREATOR CLASS
+# ==========================================================
+
+
+class FeatureCreator(
+    BaseEstimator,
+    TransformerMixin
+):
+
+
+    def __init__(
+        self,
+        numerical_cols=None,
+        categorical_cols=None
+    ):
+
+
+        # Danh sách cột số
         self.numerical_cols = numerical_cols
+
+
+        # Danh sách cột category
         self.categorical_cols = categorical_cols
-        
-        # Khởi tạo bộ "từ điển" chứa các quy luật thống kê đã học từ tập Train
-        self.imputation_values_ = {}
-        self.capping_bounds_ = {}
-        
-    def fit(self, X, y=None):
-        """
-        GIAI ĐOẠN 1: "HỌC" (FIT PHASE) — CHỈ THỰC HIỆN TRÊN TẬP TRAIN.
-        Khóa chặt tập Test để rút trích thông số khách quan, chống Data Leakage tuyệt đối.
-        """
-        # Tự động phân loại cột nếu danh sách chưa được định nghĩa tường minh
+
+
+
+        # Các giá trị học từ TRAIN
+
+        # Numerical:
+        # median dùng để điền missing
+
+        self.numeric_imputation_values_ = {}
+
+
+
+        # Categorical:
+        # mode dùng để điền missing
+
+        self.category_imputation_values_ = {}
+
+
+
+
+    # ======================================================
+    # FIT PHASE
+    #
+    # Học quy luật từ TRAIN
+    # ======================================================
+
+
+    def fit(
+        self,
+        X: pd.DataFrame,
+        y=None
+    ):
+
+
+        assert isinstance(
+            X,
+            pd.DataFrame
+        ), (
+            "Lỗi: Input phải là pandas.DataFrame"
+        )
+
+
+
+        # Nếu chưa truyền danh sách cột
+        # tự động phân loại
+
         if self.numerical_cols is None:
-            self.numerical_cols = X.select_dtypes(include=[np.number]).columns.tolist()
+
+
+            self.numerical_cols = (
+
+                X
+                .select_dtypes(
+                    include=np.number
+                )
+                .columns
+                .tolist()
+
+            )
+
+
+
         if self.categorical_cols is None:
-            self.categorical_cols = X.select_dtypes(exclude=[np.number]).columns.tolist()
-            
-        # 1.1. Học thông số đối với Biến số (Numerical Variables)
+
+
+            self.categorical_cols = (
+
+                X
+                .select_dtypes(
+                    exclude=np.number
+                )
+                .columns
+                .tolist()
+
+            )
+
+
+
+
+        # ==================================================
+        # HỌC MISSING VALUE CHO BIẾN SỐ
+        # ==================================================
+
+
         for col in self.numerical_cols:
-            if col in X.columns:
-                # Tiêu chí 1: Học Trung vị (Median) để chuẩn bị điền khuyết
-                self.imputation_values_[col] = X[col].median()
-                
-                # Tiêu chí 2: Tính mốc phân vị (1% và 99%) thiết lập ranh giới an toàn cho Capping
-                self.capping_bounds_[col] = {
-                    'lower': X[col].quantile(0.01),
-                    'upper': X[col].quantile(0.99)
-                }
-                
-        # 1.2. Học thông số đối với Biến phân loại (Categorical Variables)
+
+
+            assert (
+                col in X.columns
+            ), (
+                f"Không tồn tại cột {col}"
+            )
+
+
+
+            # Median ổn định hơn Mean
+            # khi dữ liệu tín dụng có outlier
+
+            self.numeric_imputation_values_[col] = (
+
+                X[col]
+                .median()
+
+            )
+
+
+
+
+
+        # ==================================================
+        # HỌC MISSING VALUE CHO BIẾN CATEGORY
+        # ==================================================
+
+
         for col in self.categorical_cols:
-            if col in X.columns:
-                # Tiêu chí 1: Học Yếu vị (Mode) để chuẩn bị điền khuyết
-                mode_series = X[col].mode()
-                # Tránh lỗi nếu cột trống hoàn toàn, mặc định gán nhãn dự phòng
-                self.imputation_values_[col] = mode_series[0] if not mode_series.empty else "unknown"
-                
+
+
+            assert (
+                col in X.columns
+            ), (
+                f"Không tồn tại cột {col}"
+            )
+
+
+
+            mode_value = (
+                X[col]
+                .mode()
+            )
+
+
+
+            if not mode_value.empty:
+
+
+                self.category_imputation_values_[col] = (
+
+                    mode_value.iloc[0]
+
+                )
+
+
+            else:
+
+
+                # trường hợp cột rỗng hoàn toàn
+
+                self.category_imputation_values_[col] = (
+
+                    "unknown"
+
+                )
+
+
+
+
         return self
-        
-    def transform(self, X):
-        """
-        GIAI ĐOẠN 2: "ÁP DỤNG" (TRANSFORM PHASE) — THỰC THI TRÊN CẢ TRAIN VÀ TEST.
-        Dùng chính xác bộ thông số từ bước Fit, tuyệt đối không tính toán lại.
-        """
-        # NGUYÊN TẮC SỐNG CÒN 1: Tuyệt đối không fillna(inplace=True). 
-        # Phải dùng cơ chế trả về một bản sao rõ ràng (.copy()) để tránh side-effects.
+
+
+
+
+
+    # ======================================================
+    # TRANSFORM PHASE
+    #
+    # Áp dụng quy luật đã học
+    # ======================================================
+
+
+    def transform(
+        self,
+        X: pd.DataFrame
+    ):
+
+
+
+        assert isinstance(
+            X,
+            pd.DataFrame
+        ), (
+            "Lỗi: Input transform phải là pandas.DataFrame"
+        )
+
+
+
+        # Không sửa dữ liệu gốc
+
         X_out = X.copy()
-        
-        # Tiêu chí 3: Áp dụng các giá trị đã học để thực hiện Điền khuyết (Imputation)
-        for col, value in self.imputation_values_.items():
+
+
+
+
+
+        # ==================================================
+        # IMPUTATION NUMERICAL
+        # ==================================================
+
+
+        for col, value in (
+
+            self.numeric_imputation_values_
+            .items()
+
+        ):
+
+
             if col in X_out.columns:
-                X_out[col] = X_out[col].fillna(value)
-                
+
+
+                X_out[col] = (
+
+                    X_out[col]
+                    .fillna(value)
+
+                )
+
+
+
+
+
+        # ==================================================
+        # IMPUTATION CATEGORY
+        # ==================================================
+
+
+        for col, value in (
+
+            self.category_imputation_values_
+            .items()
+
+        ):
+
+
+            if col in X_out.columns:
+
+
+                X_out[col] = (
+
+                    X_out[col]
+                    .fillna(value)
+
+                )
+
+
+
+
+
+        # ==================================================
+        # ASSERTION KIỂM TRA
+        # ==================================================
+
+
+        assert (
+
+            X_out.shape[1]
+
+            ==
+
+            X.shape[1]
+
+        ), (
+
+            "Lỗi: Số lượng cột bị thay đổi"
+        )
+
+
+
         return X_out
 
-    def apply_capping(self, X):
-        """
-        HÀM RẼ NHÁNH TỐI ƯU MÔ HÌNH (Dành riêng cho Nhánh A - Ridge Classifier).
-        Ép các điểm ngoại lai dị biệt về lại ranh giới 1% và 99% đã học từ tập Train.
-        """
-        X_out = X.copy()
-        for col, bounds in self.capping_bounds_.items():
-            if col in X_out.columns:
-                X_out[col] = np.clip(X_out[col], bounds['lower'], bounds['upper'])
-        return X_out
+
+
+
+
+# ==========================================================
+# TEST MODULE
+# ==========================================================
+
+
+if __name__ == "__main__":
+
+
+
+    df = load_data()
+
+
+
+    creator = FeatureCreator()
+
+
+
+    result = creator.fit_transform(
+        df
+    )
+
+
+
+    print("\nKết quả sau Feature Engineering:")
+
+    print(
+        result.head()
+    )
